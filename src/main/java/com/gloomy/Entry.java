@@ -1,6 +1,7 @@
-import Server.Server;
+package com.gloomy;
 
-import java.io.IOException;
+import com.gloomy.server.Server;
+
 import java.net.*;
 
 public class Entry

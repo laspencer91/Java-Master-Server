@@ -1,4 +1,4 @@
-package Session;
+package com.gloomy.session;
 
 import java.util.Arrays;
 import java.util.List;

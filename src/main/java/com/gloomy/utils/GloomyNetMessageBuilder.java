@@ -1,6 +1,6 @@
-package Utils;
+package com.gloomy.utils;
 
-import Server.PacketWorkflowHandler;
+import com.gloomy.server.PacketWorkflowHandler;
 import com.google.gson.GsonBuilder;
 
 import java.util.HashMap;
@@ -25,7 +25,7 @@ public class GloomyNetMessageBuilder
     /**
      * Creates and returns a new message builder initialized with the message type specified
      * @param messageType The type of message that this packet is. Should be a byte
-     * @return A Utils.GloomyNetMessageBuilder instance
+     * @return A GloomyNetMessageBuilder instance
      */
     public static GloomyNetMessageBuilder Create(int messageType)
     {
@@ -36,7 +36,7 @@ public class GloomyNetMessageBuilder
      * Add a piece of data to the message. This is a Key -> Value pair where where a key must be unique.
      * @param key String key to store
      * @param value Object mapped to by the key
-     * @return This instance of Utils.GloomyNetMessageBuilder
+     * @return This instance of GloomyNetMessageBuilder
      */
     public GloomyNetMessageBuilder addData(String key, Object value)
     {
@@ -47,7 +47,7 @@ public class GloomyNetMessageBuilder
     /**
      * Sets the message type of this message.
      * @param messageType The type to set this message. An integer value
-     * @return This instance of the Utils.GloomyNetMessageBuilder
+     * @return This instance of the GloomyNetMessageBuilder
      */
     public GloomyNetMessageBuilder setMessageType(int messageType)
     {

@@ -1,17 +1,15 @@
-package Server;
+package com.gloomy.server;
 
-import Session.Session;
-import Session.Client;
-import Utils.GloomyNetMessageBuilder;
+import com.gloomy.session.Session;
+import com.gloomy.session.Client;
+import com.gloomy.utils.GloomyNetMessageBuilder;
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 

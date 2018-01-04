@@ -1,20 +1,21 @@
-package Server;
+package com.gloomy.server;
 
-import Session.Session;
-import Session.Client;
+import com.gloomy.session.Session;
+import com.gloomy.session.Client;
+import org.pmw.tinylog.Configurator;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.Socket;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class Server
 {
     final int PORT;
     final int DATA_BUFFER_SIZE = 512;
+    final int maxSessions = 256;
 
     byte[] byteBuffer;
     boolean listening;
@@ -22,18 +23,17 @@ public class Server
     DatagramPacket dataPacket;
 
     List<Session> sessions = Collections.synchronizedList(new ArrayList<>());
+    ConcurrentLinkedQueue<Integer> availableSessionIds = new ConcurrentLinkedQueue<>();
 
     PacketWorkflowHandler packetHandler = new PacketWorkflowHandler(this);
 
     private Server(int port)
     {
+        Configurator.currentConfig().formatPattern("{level}: {message|indent=4}").activate();
         this.PORT = port;
 
-        try {
-            socket = new DatagramSocket(port, InetAddress.getByName("127.0.0.1"));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        for (int i = 0; i < maxSessions; i++)
+            availableSessionIds.add(i);
     }
 
     /**
@@ -51,7 +51,13 @@ public class Server
      */
     public void start()
     {
-        System.out.println("Server.Server starting listening at port " + PORT);
+        try {
+            socket = new DatagramSocket(PORT, InetAddress.getByName("127.0.0.1"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("Server starting listening at port " + PORT);
 
         listening = true;
         Thread listenThread = new Thread(() -> listen());
@@ -86,12 +92,11 @@ public class Server
      */
     public synchronized void createNewSession(Client host)
     {
-        if (sessions.contains(host))
+        if (sessions.contains(host) || availableSessionIds.isEmpty())
             return;
 
-        Session newSession = Session.Create(host,this);
+        Session newSession = Session.Create(host,this).setSessionId(availableSessionIds.poll());
         sessions.add(newSession);
-
 
         System.out.println("New Session Has Been Created By " + host.getUserName());
     }
@@ -122,6 +127,11 @@ public class Server
     public int getPort()
     {
         return PORT;
+    }
+
+    public List<Session> getSessions()
+    {
+        return sessions;
     }
 
     public DatagramSocket getSocket() {

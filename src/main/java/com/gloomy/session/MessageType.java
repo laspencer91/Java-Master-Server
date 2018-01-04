@@ -1,4 +1,4 @@
-package Session;
+package com.gloomy.session;
 
 public enum MessageType
 {
