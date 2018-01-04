@@ -5,8 +5,13 @@ import Session.Client;
 import Utils.GloomyNetMessageBuilder;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+
+import java.io.IOException;
 import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -47,7 +52,7 @@ public class PacketWorkflowHandler
     {
         working = true;
         packetsToBeWorked = new LinkedBlockingQueue<>();
-        Thread workThread = new Thread(() -> handleWork());
+        Thread workThread = new Thread(this::handleWork);
         workThread.start();
 
         System.out.println("Workflow handler has started working");
@@ -64,8 +69,7 @@ public class PacketWorkflowHandler
         while (working)
         {
             try {
-                // Wait for packets to be placed into the queue. Process
-                // "sleeps here"
+                // Wait for packets to be placed into the queue. Process "sleeps here"
                 packetToHandle = packetsToBeWorked.take();
             } catch (InterruptedException e) {
                 e.printStackTrace();
@@ -83,23 +87,20 @@ public class PacketWorkflowHandler
     {
         // Route the packet to handle through the workflow
         Map<String, Object> receivedMessage = getMessageMapFromPacket(packet);
-        int packetType = (int) receivedMessage.get(TYPE_OF_PACKET_KEY);
 
+        Double recievedDouble = (Double)receivedMessage.get(TYPE_OF_PACKET_KEY);
+        int packetType = recievedDouble.intValue();
         int senderPort = packet.getPort();
         InetAddress senderIp = packet.getAddress();
-
         String senderName;
 
         switch (packetType)
         {
-            case (PacketType.HOST_REQUEST): /// User requested to host a new session
+            case PacketType.HOST_REQUEST: /// User requested to host a new session
                 senderName = (String) receivedMessage.get(CLIENT_NAME_PACKET_KEY);
                 owningServer.createNewSession(new Client(senderName, senderIp, senderPort));
-
-                // TODO Send the sender a message back saying the session is created
                 break;
-
-            case (PacketType.JOIN_REQUEST): /// Sender requesting to join a game
+            case PacketType.JOIN_REQUEST: /// Sender requesting to join a game
                 senderName = (String) receivedMessage.get(CLIENT_NAME_PACKET_KEY);
                 Session openSession = owningServer.findOpenSession();
 
@@ -110,10 +111,16 @@ public class PacketWorkflowHandler
                 else
                 {
                     System.out.println("No Sessions Available");
-                    String sendMessage = GloomyNetMessageBuilder.Create(2).build();
-                    //TODO Send the sender a message saying no session available
-                }
 
+                    // Send No Session Available Message To Client
+                    String sendMessage = GloomyNetMessageBuilder.Create(PacketType.JOIN_FAILED).build();
+                    DatagramSocket socket = owningServer.getSocket();
+                    DatagramPacket sendPacket = new DatagramPacket(sendMessage.getBytes(), sendMessage.getBytes().length, senderIp, senderPort);
+                    try { socket.send(sendPacket); } catch (IOException e) { e.printStackTrace(); }
+                }
+                break;
+            default:
+                System.out.println("Kyle Called You a BICHHHHH");
                 break;
         }
     }
@@ -126,10 +133,11 @@ public class PacketWorkflowHandler
     private Map<String, Object> getMessageMapFromPacket(DatagramPacket packet)
     {
         byte[] data = packet.getData();
-        GsonBuilder messageParser = new GsonBuilder();
         Gson gson = new Gson();
 
-        return gson.fromJson(messageParser.create().toJson(new String(data)), Map.class);
+        String receivedString = new String(data).replace("\"", "'").trim();
+        System.out.println(receivedString);
+        return gson.fromJson(receivedString, new TypeToken<Map<String, Object>>(){}.getType());
     }
 
     /**

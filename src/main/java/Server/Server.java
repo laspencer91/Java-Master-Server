@@ -6,10 +6,10 @@ import Session.Client;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class Server
 {
@@ -30,7 +30,7 @@ public class Server
         this.PORT = port;
 
         try {
-            socket = new DatagramSocket(port);
+            socket = new DatagramSocket(port, InetAddress.getByName("127.0.0.1"));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -53,6 +53,7 @@ public class Server
     {
         System.out.println("Server.Server starting listening at port " + PORT);
 
+        listening = true;
         Thread listenThread = new Thread(() -> listen());
         packetHandler.start();
         listenThread.start();
@@ -60,13 +61,17 @@ public class Server
 
     private void listen()
     {
+        //System.out.println("Server is listening for packets at " + socket.getPort() + " " + socket.getInetAddress().getHostAddress());
+
         while (listening)
         {
+            System.out.println("Listening");
             byteBuffer = new byte[DATA_BUFFER_SIZE];
             dataPacket = new DatagramPacket(byteBuffer, DATA_BUFFER_SIZE);
 
             try {
                 socket.receive(dataPacket);
+                System.out.println("Data Packet Recieved");
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -86,6 +91,9 @@ public class Server
 
         Session newSession = Session.Create(host,this);
         sessions.add(newSession);
+
+
+        System.out.println("New Session Has Been Created By " + host.getUserName());
     }
 
     /**
@@ -114,5 +122,9 @@ public class Server
     public int getPort()
     {
         return PORT;
+    }
+
+    public DatagramSocket getSocket() {
+        return socket;
     }
 }

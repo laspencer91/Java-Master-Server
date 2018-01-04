@@ -3,6 +3,7 @@ package Utils;
 import Server.PacketWorkflowHandler;
 import com.google.gson.GsonBuilder;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public class GloomyNetMessageBuilder
@@ -16,6 +17,8 @@ public class GloomyNetMessageBuilder
     private GloomyNetMessageBuilder(int messageType)
     {
         this.messageType = messageType;
+
+        messageMap = new HashMap<>();
         messageMap.put(PacketWorkflowHandler.TYPE_OF_PACKET_KEY, messageType);
     }
 

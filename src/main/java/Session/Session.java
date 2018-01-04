@@ -1,6 +1,12 @@
 package Session;
 
 import Server.Server;
+import Utils.GloomyNetMessageBuilder;
+import Server.PacketType;
+
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
@@ -12,9 +18,8 @@ public class Session
     private List<Client> clients;
     private Client host;
     private int maxClients = 6;
-    private BlockingQueue<SessionTask> sessionTasks;
-
-    private final static String MESSAGE_TYPE = "TYPE";
+    private BlockingQueue<SessionMessage> messageSendList;
+    private DatagramSocket socket;
 
     private Session() {}
 
@@ -49,8 +54,14 @@ public class Session
         System.out.println("Host Ip: " + host.getIp().getHostName());
         System.out.println("Host Port: " + host.getPort());
 
-        sessionTasks = new LinkedBlockingQueue<>();
-        Thread sessionThread = new Thread(() -> processTasks());
+        // Send Host Success Message and Initialize messageSendList
+        messageSendList = new LinkedBlockingQueue<>();
+        String hostSuccessMessage = GloomyNetMessageBuilder.Create(PacketType.HOST_SUCCESS).build();
+        messageSendList.add(new SessionMessage(hostSuccessMessage, host));
+
+        socket = owningServer.getSocket();
+
+        Thread sessionThread = new Thread(this::processTasks);
         sessionThread.start();
     }
 
@@ -59,17 +70,25 @@ public class Session
      */
     private void processTasks()
     {
-        SessionTask task = null;
+        SessionMessage message = null;
 
         while (true)
         {
-            try { task = sessionTasks.take(); } catch (InterruptedException e) { e.printStackTrace();  }
+            try { message = messageSendList.take(); } catch (InterruptedException e) { e.printStackTrace();  }
 
-            switch (task.messageType)
+            byte[] messageData = message.message.getBytes();
+            DatagramPacket sendPacket = new DatagramPacket(messageData, messageData.length);
+
+            // Send recipients the message
+            for (Client client : message.recipients)
             {
-                case ADD_CLIENT:
-                    // TODO Handle a client added process (Send all clients data of new user)
-                    break;
+                sendPacket.setAddress(client.getIp());
+                sendPacket.setPort(client.getPort());
+                try {
+                    socket.send(sendPacket);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         }
     }
@@ -84,7 +103,11 @@ public class Session
         if (!clients.contains(newClient))
         {
             clients.add(newClient);
-            sessionTasks.add(new SessionTask(MessageType.ADD_CLIENT));
+            SessionMessage newMessage =
+                    new SessionMessage(GloomyNetMessageBuilder.Create(PacketType.JOIN_SUCCESS)
+                                                              .addData("clients", clients.size())
+                                                              .build(), newClient);
+            messageSendList.add(newMessage);
             System.out.println("Session.Client " + newClient.getUserName() + " has been added to " + host.getUserName() + "'s session.");
         }
         else
