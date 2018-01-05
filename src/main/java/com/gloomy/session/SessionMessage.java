@@ -5,7 +5,7 @@ import java.util.List;
 
 class SessionMessage
 {
-    public final List<Client> recipients;
+    public List<Client> recipients;
 
     public final String message;
 
@@ -19,5 +19,18 @@ class SessionMessage
     {
         this.recipients = recipients;
         this.message = message;
+    }
+
+    public SessionMessage(String message)
+    {
+        this.message = message;
+    }
+
+    public void setRecipients(Client... recipients) {
+        this.recipients = Arrays.asList(recipients);
+    }
+
+    public void setRecipients(List<Client> recipients) {
+        this.recipients = recipients;
     }
 }

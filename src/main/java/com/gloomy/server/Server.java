@@ -3,6 +3,7 @@ package com.gloomy.server;
 import com.gloomy.session.Session;
 import com.gloomy.session.Client;
 import org.pmw.tinylog.Configurator;
+import org.pmw.tinylog.Logger;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -46,9 +47,7 @@ public class Server
         return new Server(port);
     }
 
-    /**
-     * Start the server
-     */
+    /** Start the server **/
     public void start()
     {
         try {
@@ -67,8 +66,6 @@ public class Server
 
     private void listen()
     {
-        //System.out.println("Server is listening for packets at " + socket.getPort() + " " + socket.getInetAddress().getHostAddress());
-
         while (listening)
         {
             System.out.println("Listening");
@@ -87,15 +84,15 @@ public class Server
     }
 
     /**
-     * Creates a new game session if a session from the host does not already exist
+     * Creates a new game session if available session ids exist
      * @param host The Client instance representing the host of the session
      */
     public synchronized void createNewSession(Client host)
     {
-        if (sessions.contains(host) || availableSessionIds.isEmpty())
+        if (availableSessionIds.isEmpty())
             return;
 
-        Session newSession = Session.Create(host,this).setSessionId(availableSessionIds.poll());
+        Session newSession = Session.Create(host,this, availableSessionIds.poll());
         sessions.add(newSession);
 
         System.out.println("New Session Has Been Created By " + host.getUserName());
@@ -124,6 +121,22 @@ public class Server
         }
     }
 
+
+    /**
+     * Shutdown a specified session belonging to this server
+     * @param session The Session instance to shut down
+     */
+    public void sessionShutdown(Session session) {
+        boolean success = sessions.remove(session);
+        if (success) {
+            availableSessionIds.add(session.getSessionId());
+            session.shutdown();
+            Logger.info("Session {} has been shutdown.", session.getSessionId());
+        }
+        else
+            Logger.warn("Attempted to remove session that is not found in this servers session list.");
+    }
+
     public int getPort()
     {
         return PORT;
@@ -137,4 +150,22 @@ public class Server
     public DatagramSocket getSocket() {
         return socket;
     }
+
+    /**
+     * Get the Session instance associated with the specified sessionId
+     * @param senderSessionId The session Id to find the Session of
+     * @return The found session, or null if the session was not found
+     */
+    public Session getSession(int senderSessionId) {
+
+        synchronized (sessions) {
+            for (Session session: sessions) {
+                if (session.getSessionId() == senderSessionId)
+                    return session;
+            }
+            Logger.warn("Host sent disconnect message, but no session found with the given host id");
+            return null;
+        }
+    }
+
 }

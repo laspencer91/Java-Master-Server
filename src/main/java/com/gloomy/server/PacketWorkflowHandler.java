@@ -5,6 +5,7 @@ import com.gloomy.session.Client;
 import com.gloomy.utils.GloomyNetMessageBuilder;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import org.pmw.tinylog.Logger;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -21,7 +22,11 @@ public class PacketWorkflowHandler
 
     public static String TYPE_OF_PACKET_KEY = "T:P";
 
-    private static String CLIENT_NAME_PACKET_KEY = "name";
+    public static String CLIENT_NAME_PACKET_KEY = "name";
+
+    public static String SESSION_ID_KEY = "sId";
+
+    public static String CLIENT_ID_KEY  = "cId";
 
     private Server owningServer;
 
@@ -85,40 +90,34 @@ public class PacketWorkflowHandler
     {
         // Route the packet to handle through the workflow
         Map<String, Object> receivedMessage = getMessageMapFromPacket(packet);
-
-        Double recievedDouble = (Double)receivedMessage.get(TYPE_OF_PACKET_KEY);
-        int packetType = recievedDouble.intValue();
-        int senderPort = packet.getPort();
         InetAddress senderIp = packet.getAddress();
-        String senderName;
+        int senderPort = packet.getPort();
+        int packetType = ((Double)receivedMessage.get(TYPE_OF_PACKET_KEY)).intValue();
 
         switch (packetType)
         {
-            case PacketType.HOST_REQUEST: /// User requested to host a new session
-                senderName = (String) receivedMessage.get(CLIENT_NAME_PACKET_KEY);
-                owningServer.createNewSession(new Client(senderName, senderIp, senderPort));
-                break;
-            case PacketType.JOIN_REQUEST: /// Sender requesting to join a game
-                senderName = (String) receivedMessage.get(CLIENT_NAME_PACKET_KEY);
+            case PacketType.MATCH_REQUEST:  // Join Game If Session Is Available Or Host If Not
+            {
+                String senderName = (String) receivedMessage.get(CLIENT_NAME_PACKET_KEY);
                 Session openSession = owningServer.findOpenSession();
 
                 if (openSession != null)
-                {
-                    openSession.addClient(new Client(senderName, senderIp, senderPort));
-                }
+                    openSession.addClient(new Client(senderName, senderIp, senderPort));           // Join Game
                 else
-                {
-                    System.out.println("No Sessions Available");
+                    owningServer.createNewSession(new Client(senderName, senderIp, senderPort));   // Host a game
 
-                    // Send No Session Available Message To Client
-                    String sendMessage = GloomyNetMessageBuilder.Create(PacketType.JOIN_FAILED).build();
-                    DatagramSocket socket = owningServer.getSocket();
-                    DatagramPacket sendPacket = new DatagramPacket(sendMessage.getBytes(), sendMessage.getBytes().length, senderIp, senderPort);
-                    try { socket.send(sendPacket); } catch (IOException e) { e.printStackTrace(); }
-                }
                 break;
+            }
+            case PacketType.CLIENT_DISCONNECT:
+            {
+                int senderSessionId = ((Double) receivedMessage.get(SESSION_ID_KEY)).intValue();
+                String senderName = (String) receivedMessage.get(CLIENT_NAME_PACKET_KEY);
+                Session sessionToDisconnectClient = owningServer.getSession(senderSessionId);
+                sessionToDisconnectClient.disconnectClient(new Client(senderName, senderIp, senderPort));
+                break;
+            }
             default:
-                System.out.println("Kyle Called You a BICHHHHH");
+                Logger.warn("Unknown Packet type received. Ignoring");
                 break;
         }
     }

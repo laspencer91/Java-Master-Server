@@ -57,7 +57,7 @@ public class SessionTest
             e.printStackTrace();
         }
 
-        testSession.broadcastAllClientsInfo();
+        testSession.getCommunicator().addBroadcastAllClientsInfoMessage();
     }
 
     @Test
