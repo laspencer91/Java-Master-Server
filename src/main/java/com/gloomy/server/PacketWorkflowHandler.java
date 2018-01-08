@@ -111,9 +111,9 @@ public class PacketWorkflowHandler
             case PacketType.CLIENT_DISCONNECT:
             {
                 int senderSessionId = ((Double) receivedMessage.get(SESSION_ID_KEY)).intValue();
-                String senderName = (String) receivedMessage.get(CLIENT_NAME_PACKET_KEY);
+                int senderClientId = ((Double) receivedMessage.get(CLIENT_ID_KEY)).intValue();
                 Session sessionToDisconnectClient = owningServer.getSession(senderSessionId);
-                sessionToDisconnectClient.disconnectClient(new Client(senderName, senderIp, senderPort));
+                sessionToDisconnectClient.disconnectClient(sessionToDisconnectClient.findClientFromId(senderClientId));
                 break;
             }
             default:

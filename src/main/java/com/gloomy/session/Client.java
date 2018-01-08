@@ -10,6 +10,7 @@ public class Client
     private InetAddress ip;
     private int port;
     private byte clientId;
+    private int team;
     private Map<String, Object> infoMap;
 
     private Client() {}
@@ -26,6 +27,8 @@ public class Client
         this.clientId = clientId;
     }
 
+    public void setTeam(int team) { this.team = team; }
+
     public String getUserName() {
         return userName;
     }
@@ -39,6 +42,12 @@ public class Client
         return port;
     }
 
+    public int getTeam() { return team; }
+
+    public byte getClientId() {
+        return clientId;
+    }
+
     @Override
     public boolean equals(Object o) {
         Client cl = (Client) o;
@@ -49,15 +58,12 @@ public class Client
         if (infoMap == null) {
             infoMap = new HashMap<>();
             infoMap.put("name", userName);
-            infoMap.put("id", clientId);
             infoMap.put("ip", ip.getHostAddress());
             infoMap.put("port", port);
+            infoMap.put("team", team);
+            infoMap.put("cId", clientId);
         }
 
         return infoMap;
-    }
-
-    public byte getClientId() {
-        return clientId;
     }
 }

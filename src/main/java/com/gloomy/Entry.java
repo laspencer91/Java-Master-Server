@@ -19,13 +19,5 @@ public class Entry
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
-
-        byte[] garbage = {1, 4 ,2, 3, 5, 6, 7, 4};
-
-        //try {
-            //socket.send(new DatagramPacket(garbage, garbage.length, InetAddress.getLocalHost(), 3223));
-        //} catch (IOException e) {
-        //    e.printStackTrace();
-        //}
     }
 }

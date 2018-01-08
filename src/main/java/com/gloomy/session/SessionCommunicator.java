@@ -129,6 +129,7 @@ public class SessionCommunicator
         builder.addData("clients", clientInfo);
         String finalInfo = builder.build();
         addMessageToBeBroadcasted(finalInfo);
+        Logger.info(finalInfo);
         Logger.info("Packet Size For Broadcast is: {}", finalInfo.getBytes().length);
     }
 

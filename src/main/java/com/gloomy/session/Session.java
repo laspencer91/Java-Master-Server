@@ -20,6 +20,7 @@ public class Session
     private int sessionId;
     private DatagramSocket socket;
     private SessionCommunicator communicator;
+    private int teams = 2;
 
 
     /** Use Session.Create instead **/
@@ -63,6 +64,7 @@ public class Session
 
         this.host = host;
         this.host.setClientId(clientIds.poll());
+        this.host.setTeam(1);
         this.owningServer = owningServer;
         this.socket = owningServer.getSocket();
         this.clients.add(this.host);
@@ -73,8 +75,11 @@ public class Session
                 host.getUserName(), host.getIp().getHostName(), host.getPort());
 
         // Send Host Success Message and Initialize messageSendList
-        String hostSuccessMessage = GloomyNetMessageBuilder.Create(PacketType.HOST_SUCCESS)
+        String hostSuccessMessage = GloomyNetMessageBuilder.Create(PacketType.JOIN_SUCCESS)
+                                                           .addData("host", true)
                                                            .addData("sId", sessionId)
+                                                           .addData("cId", host.getClientId())
+                                                           .addData("team", host.getTeam())
                                                            .build();
 
         communicator.addMessage(new SessionMessage(hostSuccessMessage), host);
@@ -91,13 +96,18 @@ public class Session
         {
             newClient.setClientId(clientIds.poll()); // Get client Id
             clients.add(newClient);
+
+            newClient.setTeam((clients.size() % 2 == 0) ? 2 : 1); // TODO Probably optimize this
+
             SessionMessage newMessage =
                     new SessionMessage(GloomyNetMessageBuilder.Create(PacketType.JOIN_SUCCESS)
-                                                              .addData("clients", clients.size())
+                                                              .addData("host", false)
                                                               .addData("cId", newClient.getClientId())
                                                               .addData("sId", sessionId)
+                                                              .addData("team", newClient.getTeam())
                                                               .build());
             communicator.addMessage(newMessage, newClient);
+            communicator.addBroadcastAllClientsInfoMessage();
             Logger.info("Client {} has been added to {}'s session.", newClient.getUserName(), host.getUserName());
         }
         else
@@ -118,7 +128,7 @@ public class Session
             clients.remove(client);
             SessionMessage newMessage =
                     new SessionMessage(GloomyNetMessageBuilder.Create(PacketType.CLIENT_DISCONNECTED)
-                                                              .addData("clients", clients.size())
+                                                              .addData("cId", client.getClientId())
                                                               .build());
             SessionMessage disconnectedMessage =
                     new SessionMessage(GloomyNetMessageBuilder.Create(PacketType.YOURE_DISCONNECTED).build());
@@ -176,6 +186,12 @@ public class Session
         return this;
     }
 
+    public Session setTeams(int teams)
+    {
+        this.teams = teams;
+        return this;
+    }
+
     /**
      * @return true if this session is available to have clients join
      */
@@ -208,13 +224,24 @@ public class Session
         }
     }
 
-
     public void disconnectClient(Client client)
     {
         if (client.equals(host))
             disconnectHost();
         else
             removeClient(client);
+    }
+
+    public Client findClientFromId(int cId)
+    {
+        synchronized (clients) {
+            for (Client client : clients)
+                if (client.getClientId() == cId)
+                    return client;
+
+            Logger.warn("Client with id {} in session {} was not found.", cId, sessionId);
+            return null;
+        }
     }
 
     public void shutdown() {
