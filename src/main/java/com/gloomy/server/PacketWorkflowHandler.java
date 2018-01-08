@@ -102,7 +102,7 @@ public class PacketWorkflowHandler
                 Session openSession = owningServer.findOpenSession();
 
                 if (openSession != null)
-                    openSession.addClient(new Client(senderName, senderIp, senderPort));           // Join Game
+                    openSession.addClient(new Client(senderName, senderIp, senderPort)); // Join Game
                 else
                     owningServer.createNewSession(new Client(senderName, senderIp, senderPort));   // Host a game
 
@@ -117,7 +117,7 @@ public class PacketWorkflowHandler
                 break;
             }
             default:
-                Logger.warn("Unknown Packet type received. Ignoring");
+                Logger.warn("Unknown Packet type received. Ignoring.... {}", packetType);
                 break;
         }
     }

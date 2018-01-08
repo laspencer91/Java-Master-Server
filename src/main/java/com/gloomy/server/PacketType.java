@@ -9,4 +9,5 @@ public class PacketType
     public static final byte MATCH_REQUEST = 4;
     public static final byte CLIENT_DISCONNECT = 5;
     public static final byte YOURE_DISCONNECTED = 6;
+    public static final byte HOST_CHANGE        = 7;
 }

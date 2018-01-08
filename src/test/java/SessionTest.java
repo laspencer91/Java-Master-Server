@@ -77,8 +77,8 @@ public class SessionTest
             testSession.addClient(new Client("TestClient 1",InetAddress.getByName("127.0.0.1"), 3227 ));
             testSession.addClient(new Client("TestClient 2",InetAddress.getByName("127.0.0.1"), 3228 ));
             testSession.addClient(new Client("TestClient 3",InetAddress.getByName("127.0.0.1"), 3229 ));
-            testSession.addClient(new Client("TestClient 1",InetAddress.getByName("127.0.0.1"), 3230 )); // DUPL
-            testSession.addClient(new Client("TestClient 1",InetAddress.getByName("127.0.0.1"), 3230 )); // DUPL
+            testSession.addClient(new Client("TestClient 1",InetAddress.getByName("127.0.0.1"), 3230 )); // DUPLICATE
+            testSession.addClient(new Client("TestClient 1",InetAddress.getByName("127.0.0.1"), 3230 )); // DUPLICATE
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
