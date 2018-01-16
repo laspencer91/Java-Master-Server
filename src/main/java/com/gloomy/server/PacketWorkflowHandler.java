@@ -5,6 +5,7 @@ import com.gloomy.session.Client;
 import com.gloomy.utils.GloomyNetMessageBuilder;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.sun.javafx.image.BytePixelSetter;
 import org.pmw.tinylog.Logger;
 
 import java.io.IOException;
@@ -20,15 +21,15 @@ public class PacketWorkflowHandler
 
     private boolean working;
 
-    public static String TYPE_OF_PACKET_KEY = "T:P";
+    public static final String TYPE_OF_PACKET_KEY = "T:P";
 
-    public static String CLIENT_NAME_PACKET_KEY = "name";
+    private static final String CLIENT_NAME_PACKET_KEY = "name";
 
-    public static String SESSION_ID_KEY = "sId";
+    private static final String SESSION_ID_KEY = "sId";
 
-    public static String CLIENT_ID_KEY  = "cId";
+    private static final String CLIENT_ID_KEY  = "cId";
 
-    private Server owningServer;
+    private final Server owningServer;
 
     /**
      * Creates a workflow handler
@@ -113,7 +114,20 @@ public class PacketWorkflowHandler
                 int senderSessionId = ((Double) receivedMessage.get(SESSION_ID_KEY)).intValue();
                 int senderClientId = ((Double) receivedMessage.get(CLIENT_ID_KEY)).intValue();
                 Session sessionToDisconnectClient = owningServer.getSession(senderSessionId);
-                sessionToDisconnectClient.disconnectClient(sessionToDisconnectClient.findClientFromId(senderClientId));
+
+                if (sessionToDisconnectClient != null)
+                    sessionToDisconnectClient.disconnectClient(sessionToDisconnectClient.findClientFromId(senderClientId));
+                else
+                {
+                    Logger.warn("Client {} attempted to disconnect from un-existing session: {}", senderClientId, senderSessionId);
+                }
+                break;
+            }
+            case PacketType.GAME_START:
+            {
+                int senderSessionId = ((Double) receivedMessage.get(SESSION_ID_KEY)).intValue();
+                Session sessionToStartGame = owningServer.getSession(senderSessionId);
+                sessionToStartGame.startGame();
                 break;
             }
             default:

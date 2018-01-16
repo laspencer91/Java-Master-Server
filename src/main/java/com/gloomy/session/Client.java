@@ -11,6 +11,7 @@ public class Client
     private InetAddress ip;
     private int port;
     private byte clientId;
+    private boolean hosting;
     private Team team;
     private Map<String, Object> infoMap;
 
@@ -28,7 +29,21 @@ public class Client
         this.clientId = clientId;
     }
 
-    public void setTeam(Team team) { this.team = team; }
+    public void setTeam(Team team)
+    {
+        this.team = team;
+        if (infoMap != null)
+            infoMap.replace("team", team.id);
+    }
+
+    public void setHosting(boolean hosting)
+    {
+        this.hosting = hosting;
+        if (infoMap != null)
+            infoMap.replace("h", hosting);
+    }
+
+    public boolean isHost() { return hosting; }
 
     public String getUserName() {
         return userName;
@@ -69,7 +84,8 @@ public class Client
             infoMap.put("name", userName);
             infoMap.put("ip", ip.getHostAddress());
             infoMap.put("port", port);
-            infoMap.put("team", team);
+            infoMap.put("team", team.id);
+            infoMap.put("h", hosting);
             infoMap.put("cId", clientId);
         }
 

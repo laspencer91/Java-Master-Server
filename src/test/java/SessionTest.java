@@ -8,10 +8,10 @@ import java.net.UnknownHostException;
 
 import static org.junit.Assert.assertTrue;
 
-public class SessionTest
+class SessionTest
 {
 
-    public  SessionTest()
+    SessionTest()
     {
         Server testServer = Server.Create(3223);
         Client testHost = null;
@@ -35,7 +35,7 @@ public class SessionTest
     }
 
     @Test
-    public void testSessionSendClientInfo()
+    void testSessionSendClientInfo()
     {
         Server testServer = Server.Create(3223);
         Client testHost = null;
@@ -61,7 +61,7 @@ public class SessionTest
     }
 
     @Test
-    public void testSessionDuplicateClientAddAttempt()
+    void testSessionDuplicateClientAddAttempt()
     {
         Server testServer = Server.Create(3223);
         Client testHost = null;

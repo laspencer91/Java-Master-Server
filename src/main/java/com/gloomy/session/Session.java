@@ -8,6 +8,7 @@ import org.pmw.tinylog.Logger;
 import java.awt.*;
 import java.net.DatagramSocket;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -17,15 +18,13 @@ public class Session
     private static final int DEFAULT_MAX_CLIENTS = 6;
 
     private Server owningServer;
-    private List<Client> clients = new ArrayList<>();
-    private ConcurrentLinkedQueue<Byte> clientIds = new ConcurrentLinkedQueue<>();
+    private final List<Client> clients = Collections.synchronizedList(new ArrayList<>());
+    private final ConcurrentLinkedQueue<Byte> clientIds = new ConcurrentLinkedQueue<>();
     private Client host;
     private TeamManager teamManager;
     private int maxClients = 6;
     private int sessionId;
-    private DatagramSocket socket;
     private SessionCommunicator communicator;
-    private int maxTeams;
 
     /** Use Session.Create instead **/
     private Session() {}
@@ -53,8 +52,7 @@ public class Session
      */
     public static Session CreateAndConfigure(Client host, Server owningServer, int sessionId, int maxClients, int maxTeams)
     {
-        Session newSession = new Session(host, owningServer, sessionId, maxClients, maxTeams);
-        return newSession;
+        return new Session(host, owningServer, sessionId, maxClients, maxTeams);
     }
 
     private Session(Client host, Server owningServer, int sessionId, int maxClients, int maxTeams)
@@ -64,13 +62,13 @@ public class Session
             clientIds.add(i);
 
         this.maxClients   = maxClients;
-        this.maxTeams     = maxTeams;
         this.host         = host;
         this.owningServer = owningServer;
-        this.socket       = owningServer.getSocket();
+        DatagramSocket socket = owningServer.getSocket();
         this.sessionId    = sessionId;
-        this.communicator = new SessionCommunicator(this, this.socket);
+        this.communicator = new SessionCommunicator(this, socket);
         this.teamManager  = new TeamManager(clients, maxClients, maxTeams);
+        host.setHosting(true);
 
         Logger.info("New Session Has Been Created.. \n  Host Name: {}\n  Host Ip: {}\n  Host Port: {}",
                 host.getUserName(), host.getIp().getHostName(), host.getPort());
@@ -91,12 +89,16 @@ public class Session
             newClient.setClientId(clientIds.poll()); // Get client Id
             clients.add(newClient);
 
-            newClient.setTeam(teamManager.addClientGetTeam(newClient)); // Set clients team and retrieve their team
+            teamManager.addClientGetTeam(newClient);
 
             SessionMessage joinMessage = SessionMessage.JoinSuccessMessage(newClient, hosting, sessionId);
 
             communicator.addMessage(joinMessage, newClient);
             communicator.addBroadcastAllClientsInfoMessage();
+
+            if (clients.size() >= maxClients)
+                communicator.addMessage(SessionMessage.GameReadyMessage(), host);
+
             Logger.info("Client {} has been added to {}'s session.", newClient.getUserName(), host.getUserName());
         }
         else
@@ -114,18 +116,21 @@ public class Session
      * Remove a client from our session
      * @param client The client to remove
      */
-    public void removeClient(Client client)
+    private void removeClient(Client client)
     {
         if (clients.contains(client))
         {
             clientIds.add(client.getClientId());
             clients.remove(client);
+            client.getTeam().removeMember(client);
 
-            communicator.addMessage(SessionMessage.SendYouDisconnectedMessage(), clients);
-            communicator.addMessage(SessionMessage.SendOtherDisconnectMessage(client), client);
+            communicator.addMessage(SessionMessage.SendYouDisconnectedMessage(), client);
+            communicator.addMessage(SessionMessage.SendOtherDisconnectMessage(client), clients);
 
-            if (clients.size() <= 0)
+            if (clients.isEmpty())
                 owningServer.sessionShutdown(this);
+            else if (client.equals(host))
+                migrateHost(clients.get(0));
 
             Logger.info("Client {} has been removed from {}'s session.", client.getUserName(), host.getUserName());
         }
@@ -147,6 +152,52 @@ public class Session
 
     public SessionCommunicator getCommunicator() {
         return communicator;
+    }
+
+    /**
+     * @return true if this session is available to have clients join
+     */
+    public boolean isOpen()
+    {
+        return clients.size() < maxClients;
+    }
+
+    public int getSessionId() {
+        return sessionId;
+    }
+
+    /** Change the host to the first host found **/
+    private void migrateHost(Client client)
+    {
+        int hostId = host.getClientId();
+        host = client;
+        host.setHosting(true);
+        Logger.info("Host disconnected, new host is {}, {}, is host = {}", host.getClientId(), host.getUserName(), host.isHost());
+
+        SessionMessage newHostMessage = new SessionMessage(GloomyNetMessageBuilder.Create(PacketType.HOST_CHANGE)
+                .addData("newHost", host.getClientId())
+                .addData("oldHost", hostId)
+                .build());
+
+        communicator.addMessage(newHostMessage, clients);
+    }
+
+    public void disconnectClient(Client client)
+    {
+        removeClient(client);
+    }
+
+    public Client findClientFromId(int cId)
+    {
+        synchronized (clients)
+        {
+            for (Client client : clients)
+                if (client.getClientId() == cId)
+                    return client;
+
+            Logger.warn("Client with id {} in session {} was not found.", cId, sessionId);
+            return null;
+        }
     }
 
     /**
@@ -174,63 +225,15 @@ public class Session
         return this;
     }
 
-    /**
-     * @return true if this session is available to have clients join
-     */
-    public boolean isOpen()
-    {
-        return clients.size() < maxClients;
-    }
-
-    public int getSessionId() {
-        return sessionId;
-    }
-
-    /** Disconnect the host, and shut down the session if noone is available to take it over **/
-    private void disconnectHost()
-    {
-        clients.remove(host);
-
-        if (clients.isEmpty())
-        {
-            Logger.info("Host disconnected and there are no more available clients in this lobby, shutting server down");
-            owningServer.sessionShutdown(this);
-        }
-        else
-        {
-            host = clients.get(0);
-            Logger.info("Host disconnected, new host is {}, {}", host.getClientId(), host.getUserName());
-            SessionMessage newHostMessage = new SessionMessage(GloomyNetMessageBuilder.Create(PacketType.HOST_CHANGE)
-                                                                                      .addData("host", host.getClientId())
-                                                                                      .build());
-            communicator.addMessage(newHostMessage, clients);
-        }
-    }
-
-    public void disconnectClient(Client client)
-    {
-        if (client.equals(host))
-            disconnectHost();
-        else
-            removeClient(client);
-    }
-
-    public Client findClientFromId(int cId)
-    {
-        synchronized (clients)
-        {
-            for (Client client : clients)
-                if (client.getClientId() == cId)
-                    return client;
-
-            Logger.warn("Client with id {} in session {} was not found.", cId, sessionId);
-            return null;
-        }
-    }
-
     public void shutdown()
     {
         communicator.shutdown();
         Logger.info("Session {} is shutting down..", sessionId);
+    }
+
+    public void startGame()
+    {
+        Logger.info("Game Has Been Started. Session can be Shutdown");
+        owningServer.sessionShutdown(this);
     }
 }

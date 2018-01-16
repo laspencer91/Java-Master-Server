@@ -14,19 +14,19 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class Server
 {
-    final int PORT;
-    final int DATA_BUFFER_SIZE = 512;
-    final int maxSessions = 256;
+    private final int PORT;
+    private final int DATA_BUFFER_SIZE = 512;
+    private final int maxSessions = 256;
 
-    byte[] byteBuffer;
-    boolean listening;
-    DatagramSocket socket;
-    DatagramPacket dataPacket;
+    private byte[] byteBuffer;
+    private boolean listening;
+    private DatagramSocket socket;
+    private DatagramPacket dataPacket;
 
-    List<Session> sessions = Collections.synchronizedList(new ArrayList<>());
-    ConcurrentLinkedQueue<Integer> availableSessionIds = new ConcurrentLinkedQueue<>();
+    private final List<Session> sessions = Collections.synchronizedList(new ArrayList<>());
+    private final ConcurrentLinkedQueue<Integer> availableSessionIds = new ConcurrentLinkedQueue<>();
 
-    PacketWorkflowHandler packetHandler = new PacketWorkflowHandler(this);
+    private final PacketWorkflowHandler packetHandler = new PacketWorkflowHandler(this);
 
     private Server(int port)
     {
@@ -66,9 +66,9 @@ public class Server
 
     private void listen()
     {
+        Logger.info("Listening");
         while (listening)
         {
-            System.out.println("Listening");
             byteBuffer = new byte[DATA_BUFFER_SIZE];
             dataPacket = new DatagramPacket(byteBuffer, DATA_BUFFER_SIZE);
 

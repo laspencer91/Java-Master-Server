@@ -7,9 +7,6 @@ import java.util.List;
 
 public class TeamManager
 {
-    private List<Client> sessionClientList;
-    private int amountOfTeams;
-    private int maxPlayers;
     private final List<Team> teams = new ArrayList<>();
 
     private TeamManager() {}
@@ -23,9 +20,12 @@ public class TeamManager
      */
     public TeamManager(List<Client> clientList, int maxPlayers, int amountOfTeams)
     {
-        this.sessionClientList = clientList;
-        this.amountOfTeams     = amountOfTeams;
-        this.maxPlayers        = maxPlayers;
+        List<Client> sessionClientList = clientList;
+        int amountOfTeams1 = amountOfTeams;
+        int maxPlayers1 = maxPlayers;
+
+        for (int i = 0; i < amountOfTeams; i++)
+            teams.add(new Team(i));
     }
 
     /**
@@ -33,18 +33,20 @@ public class TeamManager
      * @param client The client that should be added to a team.
      * @return The team that the client is added to
      */
-    public Team addClientGetTeam(Client client)
+    public void addClientGetTeam(Client client)
     {
         Team clientsTeam = findTeamWithLeastPlayers();
-        return clientsTeam;
+        client.setTeam(clientsTeam);
+        clientsTeam.teamMembers.add(client);
     }
 
     private Team findTeamWithLeastPlayers()
     {
-        Team minTeam = getTeam(0);
+        Team minTeam = teams.get(0);
 
         for (Team team : teams)
         {
+            Logger.info("Compared Team Size {} vs First Team Size {}", team.teamMembers.size(), minTeam.teamMembers.size());
             if (team.teamMembers.size() < minTeam.teamMembers.size())
                 minTeam = team;
         }
@@ -67,23 +69,27 @@ public class TeamManager
         return null;
     }
 
-    private Team getTeam(int team) { return teams.get(team); }
-
     /**
      * Team class is a container for clients and team id
      */
     class Team
     {
         public int id = 0;
-        public List<Client> teamMembers;
+        public final List<Client> teamMembers = new ArrayList<>();
 
-        public Team(int id, int teamSize)
+        public Team(int id)
         {
             this.id = id;
-            teamMembers = new ArrayList<>();
-
-            for (int i = 0; i < teamSize; i++)
-                teamMembers.add(null);
         }
+
+        public void removeMember(Client client)
+        {
+            teamMembers.remove(client);
+        }
+    }
+
+    public int getNumberOfTeams()
+    {
+        return teams.size();
     }
 }

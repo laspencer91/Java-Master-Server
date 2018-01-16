@@ -4,7 +4,7 @@ import com.gloomy.server.Server;
 
 import java.net.*;
 
-public class Entry
+class Entry
 {
     public static void main(String[] args)
     {

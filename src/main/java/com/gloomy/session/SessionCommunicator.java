@@ -20,13 +20,12 @@ import java.util.concurrent.LinkedBlockingQueue;
  */
 public class SessionCommunicator
 {
-    private Session owningSession;
 
-    private List<Client> sessionClients;
+    private final List<Client> sessionClients;
 
-    private DatagramSocket socket;
+    private final DatagramSocket socket;
 
-    private BlockingQueue<SessionMessage> messageSendList = new LinkedBlockingQueue<>();
+    private final BlockingQueue<SessionMessage> messageSendList = new LinkedBlockingQueue<>();
 
     private boolean working;
 
@@ -37,7 +36,7 @@ public class SessionCommunicator
      */
     public SessionCommunicator(Session owningSession, DatagramSocket sessionSocket)
     {
-        this.owningSession  = owningSession;
+        Session owningSession1 = owningSession;
         this.sessionClients = owningSession.getClients();
         this.socket         = sessionSocket;
 
@@ -73,7 +72,6 @@ public class SessionCommunicator
                     sendPacket.setAddress(client.getIp());
                     sendPacket.setPort(client.getPort());
                     sendDatagramPacket(sendPacket);
-                    Logger.info("Packet Sent To User");
                 }
             }
         }
@@ -129,6 +127,7 @@ public class SessionCommunicator
         builder.addData("clients", clientInfo);
         String finalInfo = builder.build();
         addMessageToBeBroadcasted(finalInfo);
+
         Logger.info(finalInfo);
         Logger.info("Packet Size For Broadcast is: {}", finalInfo.getBytes().length);
     }

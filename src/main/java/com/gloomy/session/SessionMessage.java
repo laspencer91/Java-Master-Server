@@ -80,10 +80,16 @@ class SessionMessage
      */
     public static SessionMessage JoinSuccessMessage(Client client, boolean isHost, int sessionId)
     {
-        return new SessionMessage(GloomyNetMessageBuilder.Create(PacketType.JOIN_SUCCESS).addData("host", isHost)
+        return new SessionMessage(GloomyNetMessageBuilder.Create(PacketType.JOIN_SUCCESS)
+                .addData("host", isHost)
                 .addData("cId", client.getClientId())
                 .addData("sId", sessionId)
                 .addData("team", client.getTeam().id)
                 .build());
+    }
+
+    public static SessionMessage GameReadyMessage()
+    {
+        return new SessionMessage(GloomyNetMessageBuilder.Create(PacketType.GAME_READY).build());
     }
 }
